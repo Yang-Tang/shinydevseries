@@ -1,0 +1,255 @@
+---
+title: "Live Demo"
+output: html_notebook
+runtime: shiny
+---
+
+## jQuery UI and shinyjqui
+
+`jQuery UI` is a curated set of user interface interactions, effects, widgets, and themes built on top of the jQuery JavaScript Library.
+
+Main page: https://jqueryui.com/
+
+`shinyjqui` is an R wrapper of jQuery UI JavaScript library. It allows users to more easily to apply jQuery UI interactions to a shiny app.
+
+_The highlighted items have been implemented in `shinyjqui`_
+
+* Interactions
+
+    + [__Draggable:__](https://jqueryui.com/draggable/) Allow elements to be moved using the mouse.
+    
+    + [__Droppable:__](https://jqueryui.com/droppable/) Create targets for draggable elements.
+    
+    + [__Resizable:__](https://jqueryui.com/resizable/) Change the size of an element using the mouse
+    .
+    + [__Selectable:__](https://jqueryui.com/selectable/) Use the mouse to select elements, individually or in a group.
+    
+    + [__Sortable:__](https://jqueryui.com/sortable/) Reorder elements in a list or grid using the mouse.
+
+* Widgets
+
+    + Accordion, Autocomplete, Button, Checkboxradio, Controlgroup, Datepicker, Dialog, ...
+
+* Effects
+
+    + [__Effect:__](https://jqueryui.com/effect/) Apply an animation effect to an element.
+    
+    + [__Show/Hide/Toggle:__](https://jqueryui.com/show/) Display/Hide elements using custom effects.
+    
+    + [__Add/Remove/Switch/Toggle Class:__](https://jqueryui.com/addClass/) Adds/Removes class(es) to elements while animating all style changes.
+    
+    + [Easing:](https://jqueryui.com/easing/) Apply an easing equation to an animation.
+    
+    + [Color Animation:](https://jqueryui.com/animate/) Animate the properties of elements between colors.
+    
+* Utilities
+
+    + [Position:](https://jqueryui.com/position/) Position an element relative to the window, document, another element, or the cursor/mouse.
+    
+    + [Widget Factory:](https://jqueryui.com/widget/) Create stateful jQuery plugins using the same abstraction as all jQuery UI widgets.
+
+
+## Demo
+
+```{r}
+# Load packages:
+library(shiny)
+library(shinyjqui)
+```
+
+### Mouse Interactions
+
+* `jqui_draggable()`, 
+* `jqui_droppable()`, 
+* `jqui_resizable()`, 
+* `jqui_selectable()`, 
+* `jqui_sortable()`
+
+`jqui_xxx(ui, operation = c("enable", "disable", "destroy", "save", "load"), options = NULL)`
+
+#### 1. Quick start:
+```{r echo=TRUE}
+ui <- fluidPage(
+  jqui_draggable(div("=>Drag Me<="))
+)
+
+server <- function(input, output, session) {}
+
+shinyApp(ui, server, options = list(height = 100))
+```
+
+
+#### 2. Operation: enable/disable :
+```{r echo=TRUE}
+
+ui <- fluidPage(
+  actionButton("enable", "Enable Resizable"),
+  actionButton("disable", "Disable Resizable"),
+  
+  plotOutput("myplot", width = 200, height = 200)
+)
+
+server <- function(input, output, session) {
+  output$myplot <- renderPlot( plot(runif(10)) )
+  
+  observeEvent(input$enable, {
+    jqui_resizable("#myplot")
+  })
+  
+  observeEvent(input$disable, {
+    jqui_resizable("#myplot", operation = "disable")
+  })
+}
+
+shinyApp(ui, server, options = list(height = 300))
+```
+CSS Selector Reference: https://www.w3schools.com/cssref/css_selectors.asp
+
+
+
+#### 3. Operation: save/load (within a shiny session, client-side)
+```{r echo=TRUE}
+
+ui <- fluidPage(
+  actionButton("save", "Save position"),
+  actionButton("restore", "Restore position"),
+  
+  jqui_sortable(
+    tags$ul(
+      id = 'lst',
+      tags$li('A'),
+      tags$li('B'),
+      tags$li('C')
+    )
+  )
+)
+
+server <- function(input, output, session) {
+  observeEvent(input$save, {
+    jqui_sortable("#lst", operation = "save")
+  })
+
+  observeEvent(input$restore, {
+    jqui_sortable("#lst", operation = "load")
+  })
+}
+
+shinyApp(ui, server, options = list(height = 150))
+```
+Can also be applied to draggable, resizable and selectable: https://yang-tang.github.io/shinyjqui/articles/save-and-restore.html#save-and-restore-within-a-shiny-session-client-side
+
+
+#### 4. Operation: save/load (across shiny sessions, bookmarking)
+```{r echo=TRUE}
+
+ui <- function(request) {
+  fluidPage(
+    bookmarkButton(),
+    jqui_draggable(plotOutput("myplot", width = 200, height = 200))
+  )
+}
+
+server <- function(input, output) {
+  output$myplot <- renderPlot( plot(runif(10)) )
+  jqui_bookmarking()
+}
+
+enableBookmarking(store = "url")
+shinyApp(ui, server, options = list(height = 300))
+```
+Shiny bookmarking: https://shiny.rstudio.com/articles/bookmarking-state.html
+
+
+#### 5. Options
+```{r echo=TRUE}
+ui <- fluidPage(
+  jqui_draggable(div("=>Drag Me<="), options = list(axis = 'x'))
+)
+
+server <- function(input, output, session) {}
+
+shinyApp(ui, server, options = list(height = 100))
+```
+Find more options in jqueryui document page: https://api.jqueryui.com/category/interactions/
+
+
+#### 6. Shiny input values
+```{r echo=TRUE}
+
+ui <- fluidPage(
+  verbatimTextOutput("dim"),
+  jqui_resizable(plotOutput("myplot", width = 200, height = 200))
+)
+
+server <- function(input, output, session) {
+  output$myplot <- renderPlot( plot(runif(10)) )
+  
+  output$dim <- renderPrint({
+    input$myplot_size
+  })
+}
+
+shinyApp(ui, server, options = list(height = 400))
+```
+More details in https://yang-tang.github.io/shinyjqui/articles/introduction.html#mouse-interactions
+
+#### 7. Shiny widgets with mouse interactions
+```{r echo=TRUE}
+
+ui <- fluidPage(
+  
+  orderInput('list1', 'list1', items = month.abb, item_class = 'info'),
+  
+  
+  orderInput('list2', 'list2 (can be moved to list1 and list4)', items = month.abb,
+             connect = c('list1', 'list4'), item_class = 'primary'),
+  
+  
+  orderInput('list3', 'list3 (can be copied to List2 and List4)', items = month.abb,
+             as_source = TRUE, connect = c('list2', 'list4'), item_class = 'success'),
+  
+  
+  orderInput('list4', 'list4 (can be moved to List2)', items = NULL, connect = 'list2',
+             placeholder = 'Drag items here...')
+  
+)
+
+server <- function(input, output, session) {}
+
+shinyApp(ui, server, options = list(height = 400))
+```
+Other widgets: draggableModalDialog, sortableCheckboxGroupInput, sortableRadioButtons, sortableTabsetPanel, sortableTableOutput, selectableTableOutput
+More about orderInput: https://yang-tang.github.io/shinyjqui/articles/orderInput.html
+
+### Animation effects
+
+```{r echo=FALSE}
+print(get_jqui_effects())
+```
+
+
+```{r echo=TRUE}
+server <- function(input, output) {
+  
+  observeEvent(input$show, {
+    jqui_show('#myplot', effect = "blind")
+  })
+  
+  observeEvent(input$hide, {
+    jqui_hide('#myplot', effect = "blind")
+  })
+  
+  output$myplot <- renderPlot( plot(runif(10)) )
+
+}
+
+ui <- fluidPage(
+
+  plotOutput("myplot", width = 200, height = 200),
+  actionButton('show', 'Show'),
+  actionButton('hide', 'Hide')
+)
+
+shinyApp(ui, server, options = list(height = 300))
+```
+More about effects: https://api.jqueryui.com/category/effects/
